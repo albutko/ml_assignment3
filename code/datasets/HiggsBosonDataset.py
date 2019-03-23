@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 
-from Dataset import Dataset
+from datasets.Dataset import Dataset
 
 class HiggsBosonDataset(Dataset):
     def __init__(self, small=True, to_txt=False, ass2 = False):

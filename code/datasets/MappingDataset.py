@@ -4,10 +4,9 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
-from Dataset import Dataset
+from datasets.Dataset import Dataset
 
 class MappingDataset(Dataset):
-
     def __init__(self):
         self.classes = ['water','forest','impervious','farm','grass','orchard']
         self.datadir = os.path.abspath(os.path.dirname(__file__))

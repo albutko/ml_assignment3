@@ -1,4 +1,5 @@
 import numpy as np
+
 class Dataset:
     def __init__(self):
         self.train_data = {}
@@ -17,6 +18,13 @@ class Dataset:
 
     def get_classes(self):
         return self.classes
+
+    def get_class_dict(self):
+        d = dict()
+        classes = self.get_classes()
+        for i, c in enumerate(classes):
+            d[i] = c
+        return d
 
     def _send_to_txt(self, df, path, fmt='%.18f'):
         np.savetxt(path, df, fmt=fmt, delimiter=',')
