@@ -11,8 +11,6 @@ from scipy import interp
 from timeit import default_timer as timer
 import csv
 
-
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -173,7 +171,7 @@ def plot_kmeans_elbow_curve_train_test(train_data, test_data, train_labels, test
         train_ami.append(metrics.adjusted_mutual_info_score(train_labels,  kmeans.labels_))
         test_ami.append(metrics.adjusted_mutual_info_score(test_labels,  test_pred_labels))
 
-    plt.title("Homogeneity and Adjusted Mutual Information Score vs Clusters")
+    plt.title("Homogeneity and AMI Score vs Clusters")
     plt.plot(ks, train_homog, linestyle= '--', c='red', label='Train Homogeneity')
     plt.plot(ks, test_homog, linestyle= '--', c='blue', label='Test Homogeneity')
     plt.plot(ks, train_ami, linestyle= '-', c='red', label='Train AMI')
@@ -221,7 +219,7 @@ def plot_em_elbow_curve_train_test(train_data, test_data, train_labels, test_lab
         train_ami.append(metrics.adjusted_mutual_info_score(train_labels,  gmm.predict(train_data)))
         test_ami.append(metrics.adjusted_mutual_info_score(test_labels,  test_pred_labels))
 
-    plt.title("Homogeneity and Adjusted Mutual Information Score vs Clusters")
+    plt.title("Homogeneity and AMI Score vs Clusters")
     plt.plot(ks, train_homog, linestyle= '--', c='red', label='Train Homogeneity')
     plt.plot(ks, test_homog, linestyle= '--', c='blue', label='Test Homogeneity')
     plt.plot(ks, train_ami, linestyle= '-', c='red', label='Train AMI')
@@ -243,3 +241,93 @@ def calculate_reprojection_error(data, projector, random=False):
 
     mse = np.sum(np.sqrt(np.sum((data - reconstructed_data)**2, axis = 1)))
     return mse
+
+def plot_roc_curve(y_score, y_test, X_test=None, estimator=None, classes=None, file=None, scoring='f1'):
+    n_classes = len(classes)
+    if n_classes > 2:
+        #binarize output
+        y_test = label_binarize(y_test,classes=range(n_classes))
+        # Compute ROC curve and ROC area for each class
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+        for i in range(n_classes):
+            fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+
+        # Compute micro-average ROC curve and ROC area
+        fpr["micro"], tpr["micro"], _ = roc_curve(y_test.ravel(), y_score.ravel())
+        roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+        # First aggregate all false positive rates
+        all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
+
+        # Then interpolate all ROC curves at this points
+        mean_tpr = np.zeros_like(all_fpr)
+        for i in range(n_classes):
+            mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+
+        # Finally average it and compute AUC
+        mean_tpr /= n_classes
+
+        fpr["macro"] = all_fpr
+        tpr["macro"] = mean_tpr
+        roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+        # Plot all ROC curves
+        plt.figure()
+        plt.plot(fpr["micro"], tpr["micro"],
+                 label='micro-average ROC curve (area = {0:0.2f})'
+                       ''.format(roc_auc["micro"]),
+                 color='deeppink', linestyle=':', linewidth=4)
+
+        plt.plot(fpr["macro"], tpr["macro"],
+                 label='macro-average ROC curve (area = {0:0.2f})'
+                       ''.format(roc_auc["macro"]),
+                 color='navy', linestyle=':', linewidth=4)
+
+        plt.plot([0, 1], [0, 1], 'k--', lw=2)
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC multi-class\n(Macro AUC: {0:0.2f})'.format(roc_auc_score(y_test,y_score,average='macro')))
+        plt.legend(loc="lower right")
+
+        if file is not None:
+            plt.savefig('../images/'+file, bbox_inches='tight')
+
+
+        plt.show()
+
+def plot_confusion_matrix(y_pred, y_true, classes=None, title='Confusion Matrix', normalize=True, file=None):
+    classes_int = np.arange(len(classes))
+
+    cm = confusion_matrix(y_true,y_pred, classes_int)
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+        fmt = '.2f'
+    else:
+        fmt = 'd'
+
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+    if file is not None:
+        plt.savefig('../images/'+file, bbox_inches='tight')
+
+    plt.show()
