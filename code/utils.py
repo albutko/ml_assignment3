@@ -3,6 +3,7 @@ import itertools
 from sklearn.model_selection import learning_curve, train_test_split, ParameterGrid, GridSearchCV
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score,f1_score, recall_score, auc
 from sklearn import metrics
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import label_binarize
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
@@ -372,3 +373,7 @@ def best_hyperparameter_search(estimator, X, y, params, scoring='accuracy', cv=2
 
 
     return clf.best_estimator_
+
+def get_hot_encoding_from_cluster(clusters):
+    enc = OneHotEncoder(sparse=False)
+    return enc.fit_transform(clusters.reshape(-1,1))
