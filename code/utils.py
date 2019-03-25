@@ -72,8 +72,7 @@ def plot_pca_reduced_data_em(data, clustering_algorithm, true_labels, label_dict
         ell.set_clip_box(ax.bbox)
         ax.add_artist(ell)
 
-    plt.title('GMM clustering on PCA-reduced data\n'
-              'Centroids are marked with black crosses')
+    plt.title('GMM clustering on PCA-reduced data')
 
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_min, y_max)
@@ -331,3 +330,45 @@ def plot_confusion_matrix(y_pred, y_true, classes=None, title='Confusion Matrix'
         plt.savefig('../images/'+file, bbox_inches='tight')
 
     plt.show()
+
+def best_hyperparameter_search(estimator, X, y, params, scoring='accuracy', cv=2, graph=False, file=None):
+    # param_grid = ParameterGrid(params)
+
+    clf = GridSearchCV(estimator, params, cv=cv, scoring=scoring, return_train_score=True)
+    clf.fit(X, y)
+
+    results = clf.cv_results_
+
+    print('{} gave the best score with {} mean test {}\nmean fit time of {} +- {}secs\nmean predict time {} +- {}secs'.format(clf.best_params_,
+                                                                                                                              clf.best_score_,
+                                                                                                                              scoring,
+                                                                                                                              results['mean_fit_time'][clf.best_index_],
+                                                                                                                              results['std_fit_time'][clf.best_index_],
+                                                                                                                              results['mean_score_time'][clf.best_index_],
+                                                                                                                              results['std_score_time'][clf.best_index_]))
+    if graph:
+        p = params.keys()[0]
+        data = {
+            'title':'{} vs {}\n(CV:{})'.format(scoring,p,cv) ,
+            'xlabel':p,
+            'ylabel': scoring,
+            'x_values': params.get(p),
+            'series':[
+                        {
+                        'metrics':results.get('mean_test_score'),
+                        'style': '-',
+                        'color': 'g',
+                        'label': 'Validation Set'
+                    },
+                        {
+                        'metrics':results.get('mean_train_score'),
+                        'style': '-',
+                        'color': 'r',
+                        'label': 'Train Set'
+                    }
+            ]
+        }
+        plot_curve(data, file=file)
+
+
+    return clf.best_estimator_
